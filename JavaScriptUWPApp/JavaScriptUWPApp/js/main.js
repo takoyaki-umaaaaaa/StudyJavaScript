@@ -39,6 +39,8 @@
 			// TODO: アプリはアクティブ化されましたが、実行されていませんでした。ここで一般的なスタートアップの初期化を行います。
 			document.addEventListener("visibilitychange", onVisibilityChanged);
 			args.setPromise(WinJS.UI.processAll());
+
+			setWindowColors();
 		}
 
 		isFirstActivation = false;
@@ -47,6 +49,7 @@
 	function onVisibilityChanged(args) {
 		if (!document.hidden) {
 			// TODO: アプリが表示されるようになりました。ここでビューを最新の情報に更新することができます。
+		    showToast();
 		}
 	}
 
@@ -57,5 +60,99 @@
 	};
 
 	app.start();
+
+
+	function setWindowColors() {
+	    // Titlebarの色を変更
+	    // ApplicationViewはこれらの他に、isFullScreenModeやOrientation (landscape or portrait) など
+	    // Windowの状態が取れるっぽい
+	    var titlebar = Windows.UI.ViewManagement.ApplicationView.getForCurrentView().titleBar;
+	    titlebar.backgroundColor = Windows.UI.Colors.orange;
+	    titlebar.buttonBackgroundColor = Windows.UI.ColorHelper.fromArgb(255, 255, 255, 255); // Transparencyは無視されるようだ…
+	    titlebar.buttonForegroundColor = Windows.UI.Colors.orange;
+	    titlebar.buttonHoverBackgroundColor = Windows.UI.Colors.oldLace;
+	    titlebar.buttonHoverForegroundColor = Windows.UI.Colors.black;
+	}
+
+
+    // Toast schema : https://msdn.microsoft.com/en-us/library/windows/apps/br230849.aspx
+    // Toast template catalog : https://msdn.microsoft.com/en-us/library/windows/apps/hh761494.aspx
+	function toastData1() {
+	     return "<toast launch=\"app-defined-string\">" +
+                                 "<visual>" +
+                                   "<binding template =\"ToastGeneric\">" +
+                                     "<text>Sample Notification</text>" +
+                                     "<text>" +
+                                       "This is a sample toast notification from kunal-chowdhury.com" +
+                                     "</text>" +
+                                   "</binding>" +
+                                 "</visual>" +
+                               "</toast>";
+	}
+	function toastData2() {
+	    return "<toast launch=\"app-defined-string\">" +
+                "<visual>" +
+                 "<binding template =\"ToastGeneric\">" +
+                  "<text>Sample Notification</text>" +
+                  "<text>" +
+                   "Would you like to visit kunal-chowdhury.com?" +
+                  "</text>" +
+                 "</binding>" +
+                "</visual>" +
+                "<actions>" +
+                 "<action activationType=\"background\" content=\"yes\" arguments=\"yes\"/>" +
+                 "<action activationType=\"background\" content=\"no\" arguments=\"no\"/>" +
+                "</actions>" +
+               "</toast>";
+	}
+    // Toastの構文はMicrosoft製 Notifications Visualizerを使うのが良さそう
+    // MSDNには載っていない構文も多数あり
+	var toastData3 = (function () {/*
+	    <toast launch="action=viewEvent&amp;eventId=1983" scenario="reminder">
+          <visual>
+            <binding template="ToastGeneric">
+              <text>Adaptive Tiles Meeting</text>
+              <text>Conf Room 2001 / Building 135</text>
+              <text>10:00 AM - 10:30 AM</text>
+            </binding>
+          </visual>
+
+          <actions>
+            <input id="snoozeTime" type="selection" defaultInput="15">
+              <selection id="1" content="1 minute"/>
+              <selection id="15" content="15 minutes"/>
+              <selection id="60" content="1 hour"/>
+              <selection id="240" content="4 hours"/>
+              <selection id="144" content="1 day"/>
+            </input>
+
+            <action
+	            activationType="system"
+	            arguments="snooze"
+	            hint-inputId="snoozeTime"
+	            content=""/>
+              <action
+	            activationType="system"
+	            arguments="dismiss"
+	            content=""/>
+            </actions>
+  
+          </toast>
+    */}).toString().match(/\n([\s\S]*)\n/)[1]; // この書き方はminify時に不要コメントとして削除されるらしいので使わないほうが良さそう；´Д｀）
+
+	function showToast() {
+	    // Toastって表示要求してから実際に表示されるまで、かなり間がある；´Д｀）
+	    // ちょっとDebugには使えなさそうな感じ。
+	    // あとUserに何か通知するにしても、押してすぐには通知されないため
+	    // アプリがフリーズしているのかと思われる可能性が高い。
+        // Realtimeで通知が必要なら、HTML上でpopupしたほうが良さそう
+	    var xmlToastTemplate = toastData3;
+
+	    var xmlDocument = new Windows.Data.Xml.Dom.XmlDocument();
+	    xmlDocument.loadXml(xmlToastTemplate);
+	    var toastNotification = new Windows.UI.Notifications.ToastNotification(xmlDocument);
+	    var norification = Windows.UI.Notifications.ToastNotificationManager.createToastNotifier();
+	    norification.show(toastNotification);
+	}
 
 })();
